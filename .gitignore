@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+apps/*/node_modules/
+
+# builds
+dist/
+apps/*/dist/
+apps/*/.next/
+apps/*/out/
+
+# env
+.env
+.env.*
+apps/*/.env
+apps/*/.env.*
+
+# system
+.DS_Store
+*.log
+*.tsbuildinfo
+/.codex
+/.agents

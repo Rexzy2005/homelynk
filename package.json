@@ -1,0 +1,13 @@
+{
+  "name": "homelynk",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:realtime": "npm --prefix apps/realtime run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "build:realtime": "npm --prefix apps/realtime run build",
+    "lint:web": "npm --prefix apps/web run lint",
+    "typecheck:realtime": "npm --prefix apps/realtime run typecheck"
+  }
+}
