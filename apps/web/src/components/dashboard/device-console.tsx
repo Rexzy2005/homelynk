@@ -81,60 +81,6 @@ type DeviceConsoleProps = {
 
 type ConnectionState = "connecting" | "connected" | "offline";
 
-const demoAppliances: ApplianceRecord[] = [
-  {
-    id: "demo-light",
-    device_id: "demo-device",
-    name: "Ceiling Light",
-    room: "Living Room",
-    kind: "light",
-    state: { power: true, level: 82 },
-    is_online: true,
-    sort_order: 1,
-  },
-  {
-    id: "demo-fan",
-    device_id: "demo-device",
-    name: "Ventilation Fan",
-    room: "Kitchen",
-    kind: "fan",
-    state: { power: false, level: 40 },
-    is_online: true,
-    sort_order: 2,
-  },
-  {
-    id: "demo-lock",
-    device_id: "demo-device",
-    name: "Main Door",
-    room: "Entry",
-    kind: "lock",
-    state: { locked: true, power: true },
-    is_online: true,
-    sort_order: 3,
-  },
-  {
-    id: "demo-plug",
-    device_id: "demo-device",
-    name: "TV Socket",
-    room: "Media",
-    kind: "plug",
-    state: { power: false },
-    is_online: true,
-    sort_order: 4,
-  },
-];
-
-const demoDevice: DeviceRecord = {
-  id: "demo-device",
-  home_id: "demo-home",
-  public_device_id: "HLY-DEMO-ESP32",
-  name: "Primary ESP32",
-  status: "online",
-  last_seen_at: "2024-01-01T12:00:00.000Z",
-  pairing_code: "482913",
-  firmware_version: "demo",
-};
-
 function applianceIcon(kind: string) {
   if (kind === "light") return Lightbulb;
   if (kind === "fan") return Fan;
@@ -171,10 +117,27 @@ export function DeviceConsole({
   const [connection, setConnection] = useState<ConnectionState>(() =>
     device && !setupError ? "connecting" : "offline",
   );
-  const [items, setItems] = useState<ApplianceRecord[]>(appliances.length ? appliances : demoAppliances);
+  const [applianceOverrides, setApplianceOverrides] = useState<
+    Record<string, { state?: ApplianceState; is_online?: boolean }>
+  >({});
   const [commandStatus, setCommandStatus] = useState<Record<string, string>>({});
   const [recentCommands, setRecentCommands] = useState<CommandRecord[]>(commands);
-  const activeDevice = device ?? demoDevice;
+  const activeDevice = device;
+
+  const items = useMemo(
+    () =>
+      appliances.map((appliance) => {
+        const override = applianceOverrides[appliance.id];
+        if (!override) return appliance;
+
+        return {
+          ...appliance,
+          state: override.state ?? appliance.state,
+          is_online: override.is_online ?? appliance.is_online,
+        };
+      }),
+    [appliances, applianceOverrides],
+  );
 
   const onlineCount = useMemo(() => items.filter((item) => item.is_online).length, [items]);
   const poweredCount = useMemo(
@@ -225,16 +188,23 @@ export function DeviceConsole({
           const message = JSON.parse(event.data);
 
           if (message.type === "device.telemetry") {
-            setItems((current) =>
-              current.map((item) => {
-                const update = message.payload?.states?.find(
-                  (state: { applianceId: string }) => state.applianceId === item.id,
-                );
-                return update
-                  ? { ...item, state: update.state, is_online: true }
-                  : item;
-              }),
+            const updates = message.payload?.states?.reduce(
+              (acc: Record<string, { state?: ApplianceState; is_online?: boolean }>, update: { applianceId: string; state: ApplianceState }) => {
+                acc[update.applianceId] = {
+                  state: update.state,
+                  is_online: true,
+                };
+                return acc;
+              },
+              {},
             );
+
+            if (updates && Object.keys(updates).length) {
+              setApplianceOverrides((current) => ({
+                ...current,
+                ...updates,
+              }));
+            }
           }
 
           if (message.type === "command.status") {
@@ -276,26 +246,26 @@ export function DeviceConsole({
   }
 
   function sendCommand(appliance: ApplianceRecord) {
+    if (!activeDevice) {
+      return;
+    }
     const requestId = crypto.randomUUID();
     const currentPower = Boolean(appliance.state?.power ?? appliance.state?.locked);
     const nextPower = !currentPower;
     const action = appliance.kind === "lock" ? (nextPower ? "lock" : "unlock") : nextPower ? "turn_on" : "turn_off";
 
     setCommandStatus((current) => ({ ...current, [requestId]: "pending" }));
-    setItems((current) =>
-      current.map((item) =>
-        item.id === appliance.id
-          ? {
-              ...item,
-              state: {
-                ...item.state,
-                power: appliance.kind === "lock" ? item.state?.power : nextPower,
-                locked: appliance.kind === "lock" ? nextPower : item.state?.locked,
-              },
-            }
-          : item,
-      ),
-    );
+    setApplianceOverrides((current) => ({
+      ...current,
+      [appliance.id]: {
+        state: {
+          ...appliance.state,
+          power: appliance.kind === "lock" ? appliance.state?.power : nextPower,
+          locked: appliance.kind === "lock" ? nextPower : appliance.state?.locked,
+        },
+        is_online: appliance.is_online,
+      },
+    }));
 
     setRecentCommands((current) => [
       {
@@ -402,7 +372,9 @@ export function DeviceConsole({
           </article>
           <article className="metric">
             <span>Last device ping</span>
-            <strong suppressHydrationWarning>{formatTime(activeDevice.last_seen_at)}</strong>
+            <strong suppressHydrationWarning>
+              {formatTime(activeDevice?.last_seen_at ?? null)}
+            </strong>
           </article>
         </section>
 
@@ -434,6 +406,7 @@ export function DeviceConsole({
                         type="button"
                         aria-label={`${isActive ? "Disable" : "Enable"} ${appliance.name}`}
                         onClick={() => sendCommand(appliance)}
+                        disabled={!activeDevice}
                       >
                         <Power size={18} aria-hidden="true" />
                       </button>
@@ -456,31 +429,39 @@ export function DeviceConsole({
             <div className="panelHeader">
               <div>
                 <p className="eyebrow muted">ESP32</p>
-                <h2>{activeDevice.name}</h2>
+                <h2>{activeDevice?.name ?? "No device provisioned"}</h2>
               </div>
-              <span className="statusDot" aria-label={activeDevice.status} />
+              <span className="statusDot" aria-label={activeDevice?.status ?? "offline"} />
             </div>
+            {activeDevice ? (
+              <>
+                <div className="pairingBox">
+                  <span>Device ID</span>
+                  <button type="button" onClick={() => copyPairingValue(activeDevice.public_device_id)}>
+                    {activeDevice.public_device_id}
+                    <Copy size={15} aria-hidden="true" />
+                  </button>
+                </div>
 
-            <div className="pairingBox">
-              <span>Device ID</span>
-              <button type="button" onClick={() => copyPairingValue(activeDevice.public_device_id)}>
-                {activeDevice.public_device_id}
-                <Copy size={15} aria-hidden="true" />
-              </button>
-            </div>
-
-            {activeDevice.pairing_code ? (
-              <div className="pairingBox highlighted">
-                <span>Pairing code</span>
-                <button type="button" onClick={() => copyPairingValue(activeDevice.pairing_code ?? "")}>
-                  {activeDevice.pairing_code}
-                  <Copy size={15} aria-hidden="true" />
-                </button>
-              </div>
+                {activeDevice.pairing_code ? (
+                  <div className="pairingBox highlighted">
+                    <span>Pairing code</span>
+                    <button type="button" onClick={() => copyPairingValue(activeDevice.pairing_code ?? "")}>
+                      {activeDevice.pairing_code}
+                      <Copy size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="successBox">
+                    <CheckCircle2 size={18} aria-hidden="true" />
+                    <span>Provisioned</span>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="successBox">
-                <CheckCircle2 size={18} aria-hidden="true" />
-                <span>Provisioned</span>
+              <div className="noticeBar">
+                <AlertTriangle size={18} aria-hidden="true" />
+                <span>Create a device to see pairing details.</span>
               </div>
             )}
 
