@@ -122,6 +122,8 @@ export function DeviceConsole({
   >({});
   const [commandStatus, setCommandStatus] = useState<Record<string, string>>({});
   const [recentCommands, setRecentCommands] = useState<CommandRecord[]>(commands);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const activeDevice = device;
 
   const items = useMemo(
@@ -243,6 +245,28 @@ export function DeviceConsole({
     await supabase.auth.signOut({ scope: "local" });
     router.replace("/auth");
     router.refresh();
+  }
+
+  async function handleCreateDevice() {
+    setCreateError(null);
+    setIsCreating(true);
+
+    try {
+      const response = await fetch("/api/devices/create", { method: "POST" });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setCreateError(payload?.error ?? "Unable to create device.");
+        setIsCreating(false);
+        return;
+      }
+
+      setIsCreating(false);
+      router.refresh();
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Unable to create device.");
+      setIsCreating(false);
+    }
   }
 
   function sendCommand(appliance: ApplianceRecord) {
@@ -391,37 +415,41 @@ export function DeviceConsole({
             </div>
 
             <div className="applianceGrid">
-              {items.map((appliance) => {
-                const Icon = applianceIcon(appliance.kind);
-                const isActive = Boolean(appliance.state?.power ?? appliance.state?.locked);
+              {items.length ? (
+                items.map((appliance) => {
+                  const Icon = applianceIcon(appliance.kind);
+                  const isActive = Boolean(appliance.state?.power ?? appliance.state?.locked);
 
-                return (
-                  <article className={`applianceCard ${isActive ? "on" : ""}`} key={appliance.id}>
-                    <div className="applianceTop">
-                      <span className="deviceIcon">
-                        <Icon size={21} aria-hidden="true" />
-                      </span>
-                      <button
-                        className={`powerButton ${isActive ? "on" : ""}`}
-                        type="button"
-                        aria-label={`${isActive ? "Disable" : "Enable"} ${appliance.name}`}
-                        onClick={() => sendCommand(appliance)}
-                        disabled={!activeDevice}
-                      >
-                        <Power size={18} aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div>
-                      <h3>{appliance.name}</h3>
-                      <p>{appliance.room}</p>
-                    </div>
-                    <div className="cardFooter">
-                      <span>{isActive ? "Active" : "Standby"}</span>
-                      <small>{appliance.is_online ? "online" : "offline"}</small>
-                    </div>
-                  </article>
-                );
-              })}
+                  return (
+                    <article className={`applianceCard ${isActive ? "on" : ""}`} key={appliance.id}>
+                      <div className="applianceTop">
+                        <span className="deviceIcon">
+                          <Icon size={21} aria-hidden="true" />
+                        </span>
+                        <button
+                          className={`powerButton ${isActive ? "on" : ""}`}
+                          type="button"
+                          aria-label={`${isActive ? "Disable" : "Enable"} ${appliance.name}`}
+                          onClick={() => sendCommand(appliance)}
+                          disabled={!activeDevice}
+                        >
+                          <Power size={18} aria-hidden="true" />
+                        </button>
+                      </div>
+                      <div>
+                        <h3>{appliance.name}</h3>
+                        <p>{appliance.room}</p>
+                      </div>
+                      <div className="cardFooter">
+                        <span>{isActive ? "Active" : "Standby"}</span>
+                        <small>{appliance.is_online ? "online" : "offline"}</small>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="emptyState">No appliances yet</p>
+              )}
             </div>
           </div>
 
@@ -464,6 +492,15 @@ export function DeviceConsole({
                 <span>Create a device to see pairing details.</span>
               </div>
             )}
+
+            {!activeDevice ? (
+              <div className="pairingBox">
+                <button type="button" className="button darkButton" onClick={handleCreateDevice} disabled={isCreating}>
+                  {isCreating ? "Creating..." : "Create device"}
+                </button>
+                {createError ? <small className="formNotice">{createError}</small> : null}
+              </div>
+            ) : null}
 
             <div className="commandList" id="security">
               <h3>Recent commands</h3>
