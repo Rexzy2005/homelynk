@@ -132,13 +132,11 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+drop function if exists public.ensure_home_bootstrap();
 create or replace function public.ensure_home_bootstrap()
 returns table (
   home_id uuid,
-  home_name text,
-  device_id uuid,
-  public_device_id text,
-  pairing_code text
+  home_name text
 )
 security definer
 set search_path = public
@@ -147,7 +145,6 @@ as $$
 declare
   current_user_id uuid := auth.uid();
   selected_home public.homes%rowtype;
-  selected_device public.devices%rowtype;
   metadata_home_name text;
   metadata_full_name text;
 begin
@@ -179,37 +176,79 @@ begin
     returning * into selected_home;
   end if;
 
-  select *
-  into selected_device
-  from public.devices
-  where home_id = selected_home.id
-  order by created_at asc
-  limit 1;
-
-  if selected_device.id is null then
-    insert into public.devices (home_id, owner_id)
-    values (selected_home.id, current_user_id)
-    returning * into selected_device;
-
-    insert into public.appliances (device_id, name, room, kind, state, is_online, sort_order)
-    values
-      (selected_device.id, 'Ceiling Light', 'Living Room', 'light', '{"power": false, "level": 80}', false, 1),
-      (selected_device.id, 'Ventilation Fan', 'Kitchen', 'fan', '{"power": false, "level": 45}', false, 2),
-      (selected_device.id, 'Main Door', 'Entry', 'lock', '{"locked": true}', false, 3),
-      (selected_device.id, 'TV Socket', 'Media', 'plug', '{"power": false}', false, 4);
-  end if;
-
   return query
   select
     selected_home.id,
-    selected_home.name,
-    selected_device.id,
-    selected_device.public_device_id,
-    selected_device.pairing_code;
+    selected_home.name;
 end;
 $$;
 
 grant execute on function public.ensure_home_bootstrap() to authenticated;
+
+drop function if exists public.create_home_device(text);
+create or replace function public.create_home_device(device_name text default 'ESP32 Hub')
+returns table (
+  id uuid,
+  home_id uuid,
+  public_device_id text,
+  name text,
+  status text,
+  pairing_code text,
+  firmware_version text,
+  last_seen_at timestamptz
+)
+security definer
+set search_path = public
+language plpgsql
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  selected_home public.homes%rowtype;
+  selected_device public.devices%rowtype;
+  cleaned_name text := nullif(trim(device_name), '');
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select *
+  into selected_home
+  from public.homes
+  where owner_id = current_user_id
+  order by created_at asc
+  limit 1;
+
+  if selected_home.id is null then
+    insert into public.homes (owner_id, name)
+    values (current_user_id, 'My Home')
+    returning * into selected_home;
+  end if;
+
+  insert into public.devices (home_id, owner_id, name)
+  values (selected_home.id, current_user_id, coalesce(cleaned_name, 'ESP32 Hub'))
+  returning * into selected_device;
+
+  insert into public.appliances (device_id, name, room, kind, state, is_online, sort_order)
+  values
+    (selected_device.id, 'Relay Channel 1', 'Unassigned', 'plug', '{"power": false, "relay": 1}', false, 1),
+    (selected_device.id, 'Relay Channel 2', 'Unassigned', 'plug', '{"power": false, "relay": 2}', false, 2),
+    (selected_device.id, 'Relay Channel 3', 'Unassigned', 'plug', '{"power": false, "relay": 3}', false, 3),
+    (selected_device.id, 'Relay Channel 4', 'Unassigned', 'plug', '{"power": false, "relay": 4}', false, 4);
+
+  return query
+  select
+    selected_device.id,
+    selected_device.home_id,
+    selected_device.public_device_id,
+    selected_device.name,
+    selected_device.status,
+    selected_device.pairing_code,
+    selected_device.firmware_version,
+    selected_device.last_seen_at;
+end;
+$$;
+
+grant execute on function public.create_home_device(text) to authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.homes enable row level security;

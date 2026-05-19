@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:realtime": "npm --prefix apps/realtime run dev",
+    "build": "npm run build:web && npm run build:realtime",
     "build:web": "npm --prefix apps/web run build",
     "build:realtime": "npm --prefix apps/realtime run build",
+    "lint": "npm run lint:web",
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:realtime": "npm --prefix apps/realtime run typecheck"
   }

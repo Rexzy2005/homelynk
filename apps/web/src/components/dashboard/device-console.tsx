@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
+  Armchair,
   CheckCircle2,
   Clock3,
   Copy,
@@ -15,14 +16,19 @@ import {
   Loader2,
   Lock,
   LogOut,
+  Moon,
   Plug,
+  Plus,
   Power,
   RefreshCw,
   Router,
   Shield,
+  ShieldCheck,
   Smartphone,
+  Sun,
   Wifi,
   WifiOff,
+  Zap,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getRealtimeUrl } from "@/lib/config";
@@ -74,12 +80,34 @@ type DeviceConsoleProps = {
     name: string;
   };
   device: DeviceRecord | null;
+  devices: DeviceRecord[];
   appliances: ApplianceRecord[];
   commands: CommandRecord[];
   setupError?: string | null;
 };
 
 type ConnectionState = "connecting" | "connected" | "offline";
+
+const scenePresets = [
+  {
+    id: "away",
+    label: "Away",
+    description: "Power down and lock",
+    icon: ShieldCheck,
+  },
+  {
+    id: "night",
+    label: "Night",
+    description: "Quiet security mode",
+    icon: Moon,
+  },
+  {
+    id: "morning",
+    label: "Morning",
+    description: "Wake core rooms",
+    icon: Sun,
+  },
+];
 
 function applianceIcon(kind: string) {
   if (kind === "light") return Lightbulb;
@@ -108,27 +136,51 @@ export function DeviceConsole({
   userEmail,
   home,
   device,
+  devices,
   appliances,
   commands,
   setupError,
 }: DeviceConsoleProps) {
   const router = useRouter();
   const wsRef = useRef<WebSocket | null>(null);
+  const requestApplianceRef = useRef<Record<string, string>>({});
+  const isPreview = Boolean(setupError);
   const [connection, setConnection] = useState<ConnectionState>(() =>
     device && !setupError ? "connecting" : "offline",
   );
   const [applianceOverrides, setApplianceOverrides] = useState<
     Record<string, { state?: ApplianceState; is_online?: boolean }>
   >({});
+  const [applianceStatus, setApplianceStatus] = useState<Record<string, string>>({});
   const [commandStatus, setCommandStatus] = useState<Record<string, string>>({});
   const [recentCommands, setRecentCommands] = useState<CommandRecord[]>(commands);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const activeDevice = device;
+  const [deviceName, setDeviceName] = useState("ESP32 Hub");
+  const [selectedRoom, setSelectedRoom] = useState("All");
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(
+    device?.id ?? null,
+  );
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
+  const deviceList = useMemo(() => {
+    if (devices.length) return devices;
+    return device ? [device] : [];
+  }, [device, devices]);
+  const activeDevice = useMemo(
+    () => deviceList.find((item) => item.id === selectedDeviceId) ?? deviceList[0] ?? null,
+    [deviceList, selectedDeviceId],
+  );
+  const baseAppliances = useMemo(
+    () => {
+      if (!activeDevice) return [];
+      return appliances.filter((appliance) => appliance.device_id === activeDevice.id);
+    },
+    [activeDevice, appliances],
+  );
 
   const items = useMemo(
     () =>
-      appliances.map((appliance) => {
+      baseAppliances.map((appliance) => {
         const override = applianceOverrides[appliance.id];
         if (!override) return appliance;
 
@@ -138,21 +190,37 @@ export function DeviceConsole({
           is_online: override.is_online ?? appliance.is_online,
         };
       }),
-    [appliances, applianceOverrides],
+    [baseAppliances, applianceOverrides],
   );
 
+  const rooms = useMemo(() => ["All", ...Array.from(new Set(items.map((item) => item.room)))], [items]);
+  const visibleItems = useMemo(
+    () => (selectedRoom === "All" ? items : items.filter((item) => item.room === selectedRoom)),
+    [items, selectedRoom],
+  );
+  const visibleCommands = useMemo(
+    () =>
+      activeDevice
+        ? recentCommands.filter((command) => command.device_id === activeDevice.id).slice(0, 8)
+        : [],
+    [activeDevice, recentCommands],
+  );
   const onlineCount = useMemo(() => items.filter((item) => item.is_online).length, [items]);
   const poweredCount = useMemo(
-    () => items.filter((item) => Boolean(item.state?.power ?? item.state?.locked)).length,
+    () => items.filter((item) => item.kind !== "lock" && Boolean(item.state?.power)).length,
+    [items],
+  );
+  const securedCount = useMemo(
+    () => items.filter((item) => item.kind === "lock" && Boolean(item.state?.locked)).length,
     [items],
   );
 
   useEffect(() => {
-    if (!device || setupError) {
+    if (!activeDevice || setupError) {
       return;
     }
 
-    const currentDevice = device;
+    const currentDevice = activeDevice;
     let closed = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -210,10 +278,34 @@ export function DeviceConsole({
           }
 
           if (message.type === "command.status") {
+            const commandKey = message.requestId ?? message.commandId;
             setCommandStatus((current) => ({
               ...current,
-              [message.requestId ?? message.commandId]: message.status,
+              [commandKey]: message.status,
             }));
+            setRecentCommands((current) =>
+              current.map((command) =>
+                command.id === commandKey ? { ...command, status: message.status } : command,
+              ),
+            );
+
+            const applianceId = requestApplianceRef.current[commandKey];
+            if (applianceId) {
+              setApplianceStatus((current) => ({
+                ...current,
+                [applianceId]: message.status,
+              }));
+
+              if (["completed", "failed", "timeout", "rejected"].includes(message.status)) {
+                window.setTimeout(() => {
+                  setApplianceStatus((current) => {
+                    const next = { ...current };
+                    delete next[applianceId];
+                    return next;
+                  });
+                }, 1800);
+              }
+            }
           }
         });
 
@@ -238,9 +330,14 @@ export function DeviceConsole({
       if (retryTimer) clearTimeout(retryTimer);
       wsRef.current?.close();
     };
-  }, [device, setupError]);
+  }, [activeDevice, setupError]);
 
   async function signOut() {
+    if (isPreview) {
+      router.replace("/auth");
+      return;
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut({ scope: "local" });
     router.replace("/auth");
@@ -249,10 +346,22 @@ export function DeviceConsole({
 
   async function handleCreateDevice() {
     setCreateError(null);
+
+    if (isPreview) {
+      setCreateError("Connect Supabase and run the latest schema before adding real ESP32 devices.");
+      return;
+    }
+
     setIsCreating(true);
 
     try {
-      const response = await fetch("/api/devices/create", { method: "POST" });
+      const response = await fetch("/api/devices/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ deviceName }),
+      });
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
@@ -262,6 +371,9 @@ export function DeviceConsole({
       }
 
       setIsCreating(false);
+      if (payload?.device?.id) {
+        setSelectedDeviceId(payload.device.id);
+      }
       router.refresh();
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Unable to create device.");
@@ -269,23 +381,21 @@ export function DeviceConsole({
     }
   }
 
-  function sendCommand(appliance: ApplianceRecord) {
+  function issueCommand(appliance: ApplianceRecord, desiredState: ApplianceState, action: string) {
     if (!activeDevice) {
       return;
     }
     const requestId = crypto.randomUUID();
-    const currentPower = Boolean(appliance.state?.power ?? appliance.state?.locked);
-    const nextPower = !currentPower;
-    const action = appliance.kind === "lock" ? (nextPower ? "lock" : "unlock") : nextPower ? "turn_on" : "turn_off";
+    requestApplianceRef.current[requestId] = appliance.id;
 
     setCommandStatus((current) => ({ ...current, [requestId]: "pending" }));
+    setApplianceStatus((current) => ({ ...current, [appliance.id]: "pending" }));
     setApplianceOverrides((current) => ({
       ...current,
       [appliance.id]: {
         state: {
           ...appliance.state,
-          power: appliance.kind === "lock" ? appliance.state?.power : nextPower,
-          locked: appliance.kind === "lock" ? nextPower : appliance.state?.locked,
+          ...desiredState,
         },
         is_online: appliance.is_online,
       },
@@ -312,10 +422,7 @@ export function DeviceConsole({
         deviceId: activeDevice.public_device_id,
         applianceId: appliance.id,
         action,
-        desiredState:
-          appliance.kind === "lock"
-            ? { locked: nextPower }
-            : { power: nextPower },
+        desiredState,
       },
     };
 
@@ -324,57 +431,147 @@ export function DeviceConsole({
     } else {
       window.setTimeout(() => {
         setCommandStatus((current) => ({ ...current, [requestId]: "completed" }));
+        setApplianceStatus((current) => {
+          const next = { ...current };
+          delete next[appliance.id];
+          return next;
+        });
       }, 650);
     }
   }
 
-  async function copyPairingValue(value: string) {
-    await navigator.clipboard.writeText(value);
+  function sendCommand(appliance: ApplianceRecord) {
+    const currentPower = Boolean(appliance.state?.power ?? appliance.state?.locked);
+    const nextPower = !currentPower;
+    const action = appliance.kind === "lock" ? (nextPower ? "lock" : "unlock") : nextPower ? "turn_on" : "turn_off";
+    issueCommand(
+      appliance,
+      appliance.kind === "lock" ? { locked: nextPower } : { power: nextPower },
+      action,
+    );
   }
 
+  function applyScene(sceneId: string) {
+    visibleItems.forEach((appliance) => {
+      if (sceneId === "away") {
+        issueCommand(
+          appliance,
+          appliance.kind === "lock" ? { locked: true } : { power: false },
+          appliance.kind === "lock" ? "lock" : "turn_off",
+        );
+      }
+
+      if (sceneId === "night") {
+        issueCommand(
+          appliance,
+          appliance.kind === "lock" ? { locked: true } : { power: appliance.kind === "light" },
+          appliance.kind === "lock" ? "lock" : appliance.kind === "light" ? "turn_on" : "turn_off",
+        );
+      }
+
+      if (sceneId === "morning") {
+        issueCommand(
+          appliance,
+          appliance.kind === "lock" ? { locked: true } : { power: appliance.kind !== "plug" },
+          appliance.kind === "plug" ? "turn_off" : appliance.kind === "lock" ? "lock" : "turn_on",
+        );
+      }
+    });
+  }
+
+  async function copyPairingValue(value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopiedValue(value);
+    window.setTimeout(() => setCopiedValue(null), 1500);
+  }
+
+  const addDeviceForm = (
+    <form
+      className="addDeviceForm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        handleCreateDevice();
+      }}
+    >
+      <div>
+        <label htmlFor="deviceName">ESP32 name</label>
+        <input
+          id="deviceName"
+          value={deviceName}
+          onChange={(event) => setDeviceName(event.target.value)}
+          placeholder="Main relay controller"
+        />
+      </div>
+      <button type="submit" className="button darkButton" disabled={isCreating}>
+        {isCreating ? <Loader2 className="spin" size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />}
+        {isCreating ? "Creating device..." : "Create ESP32 identity"}
+      </button>
+      {createError ? <small className="formNotice">{createError}</small> : null}
+    </form>
+  );
+
   return (
-    <main className="dashboard">
-      <aside className="sidebar">
-        <Link className="brand dashboardBrand" href="/">
+    <main className="dashboard dashboardShell">
+      <header className="dashboardTopbar">
+        <Link className="brand dashboardBrand dashboardTopbarBrand" href="/">
           <span className="brandMark">
             <Home size={19} aria-hidden="true" />
           </span>
           HomeLynk
         </Link>
-        <nav className="sideNav" aria-label="Dashboard navigation">
-          <a className="active" href="#overview">
-            <Activity size={18} aria-hidden="true" />
-            Overview
-          </a>
+
+        <nav className="dashboardTopNav" aria-label="Dashboard navigation">
+          <a href="#overview">Overview</a>
           <a href="#devices">
-            <Router size={18} aria-hidden="true" />
             Devices
           </a>
+          <a href="#pairing">
+            Pairing
+          </a>
           <a href="#security">
-            <Shield size={18} aria-hidden="true" />
             Logs
           </a>
         </nav>
-        <button className="iconTextButton" type="button" onClick={signOut}>
-          <LogOut size={18} aria-hidden="true" />
-          Sign out
-        </button>
-      </aside>
+
+        <div className="dashboardTopActions">
+          <div className={`connectionPill ${connection}`}>
+            {connection === "connected" ? <Wifi size={18} aria-hidden="true" /> : <WifiOff size={18} aria-hidden="true" />}
+            {connection}
+          </div>
+          <button className="iconTextButton" type="button" onClick={signOut}>
+            <LogOut size={18} aria-hidden="true" />
+            Sign out
+          </button>
+        </div>
+      </header>
 
       <section className="dashboardMain">
-        <header className="dashboardHeader" id="overview">
+        <section className="dashboardHero" id="overview">
           <div>
             <p className="eyebrow muted">
               <Smartphone size={16} aria-hidden="true" />
               {userEmail}
             </p>
             <h1>{home.name}</h1>
+            <p className="dashboardSubtitle">
+              Control relay-connected home appliances from anywhere through a secure ESP32 cloud bridge.
+            </p>
           </div>
-          <div className={`connectionPill ${connection}`}>
-            {connection === "connected" ? <Wifi size={18} aria-hidden="true" /> : <WifiOff size={18} aria-hidden="true" />}
-            {connection}
+          <div className="homeBridgePanel">
+            <div>
+              <span>Registered ESP32</span>
+              <strong>{deviceList.length}</strong>
+            </div>
+            <div>
+              <span>Active device</span>
+              <strong>{activeDevice?.name ?? "None"}</strong>
+            </div>
+            <div>
+              <span>Last ping</span>
+              <strong suppressHydrationWarning>{formatTime(activeDevice?.last_seen_at ?? null)}</strong>
+            </div>
           </div>
-        </header>
+        </section>
 
         {setupError ? (
           <div className="noticeBar">
@@ -385,127 +582,247 @@ export function DeviceConsole({
 
         <section className="metricGrid" aria-label="Home status">
           <article className="metric">
-            <span>Online appliances</span>
+            <span>Relay channels</span>
             <strong>
-              {onlineCount}/{items.length}
+              {items.length}
             </strong>
           </article>
           <article className="metric">
-            <span>Active loads</span>
+            <span>Online channels</span>
+            <strong>{onlineCount}</strong>
+          </article>
+          <article className="metric">
+            <span>Active relays</span>
             <strong>{poweredCount}</strong>
           </article>
           <article className="metric">
-            <span>Last device ping</span>
-            <strong suppressHydrationWarning>
-              {formatTime(activeDevice?.last_seen_at ?? null)}
-            </strong>
+            <span>Locks secured</span>
+            <strong>{securedCount}</strong>
           </article>
         </section>
 
-        <section className="dashboardGrid">
-          <div className="controlPanel" id="devices">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow muted">Rooms</p>
-                <h2>Appliance controls</h2>
-              </div>
-              <button className="iconButton" type="button" aria-label="Refresh dashboard" onClick={() => router.refresh()}>
-                <RefreshCw size={18} aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="applianceGrid">
-              {items.length ? (
-                items.map((appliance) => {
-                  const Icon = applianceIcon(appliance.kind);
-                  const isActive = Boolean(appliance.state?.power ?? appliance.state?.locked);
-
-                  return (
-                    <article className={`applianceCard ${isActive ? "on" : ""}`} key={appliance.id}>
-                      <div className="applianceTop">
-                        <span className="deviceIcon">
-                          <Icon size={21} aria-hidden="true" />
-                        </span>
-                        <button
-                          className={`powerButton ${isActive ? "on" : ""}`}
-                          type="button"
-                          aria-label={`${isActive ? "Disable" : "Enable"} ${appliance.name}`}
-                          onClick={() => sendCommand(appliance)}
-                          disabled={!activeDevice}
-                        >
-                          <Power size={18} aria-hidden="true" />
-                        </button>
-                      </div>
-                      <div>
-                        <h3>{appliance.name}</h3>
-                        <p>{appliance.room}</p>
-                      </div>
-                      <div className="cardFooter">
-                        <span>{isActive ? "Active" : "Standby"}</span>
-                        <small>{appliance.is_online ? "online" : "offline"}</small>
-                      </div>
-                    </article>
-                  );
-                })
-              ) : (
-                <p className="emptyState">No appliances yet</p>
-              )}
-            </div>
-          </div>
-
-          <aside className="devicePanel">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow muted">ESP32</p>
-                <h2>{activeDevice?.name ?? "No device provisioned"}</h2>
-              </div>
-              <span className="statusDot" aria-label={activeDevice?.status ?? "offline"} />
-            </div>
-            {activeDevice ? (
-              <>
-                <div className="pairingBox">
-                  <span>Device ID</span>
-                  <button type="button" onClick={() => copyPairingValue(activeDevice.public_device_id)}>
-                    {activeDevice.public_device_id}
-                    <Copy size={15} aria-hidden="true" />
-                  </button>
+        <section className="dashboardWorkspace">
+          <div className="dashboardPrimary">
+            {!activeDevice ? (
+              <section className="emptyDevicePanel" id="devices">
+                <div className="emptyDeviceCopy">
+                  <span className="emptyDeviceIcon">
+                    <Router size={26} aria-hidden="true" />
+                  </span>
+                  <p className="eyebrow muted">Setup required</p>
+                  <h2>No ESP32 device added yet</h2>
+                  <p>
+                    Create a device identity, copy the generated device ID and pairing code,
+                    then add them to the ESP32 provisioning step before deployment.
+                  </p>
                 </div>
+                <div className="setupSteps" aria-label="ESP32 setup steps">
+                  <div>
+                    <strong>1</strong>
+                    <span>Create ESP32 identity</span>
+                  </div>
+                  <div>
+                    <strong>2</strong>
+                    <span>Compile/provision firmware</span>
+                  </div>
+                  <div>
+                    <strong>3</strong>
+                    <span>ESP32 claims device secret</span>
+                  </div>
+                  <div>
+                    <strong>4</strong>
+                    <span>Control relay channels</span>
+                  </div>
+                </div>
+                {addDeviceForm}
+              </section>
+            ) : (
+              <>
+                <section className="sceneRail" aria-label="Quick scenes">
+                  {scenePresets.map((scene) => {
+                    const SceneIcon = scene.icon;
 
-                {activeDevice.pairing_code ? (
-                  <div className="pairingBox highlighted">
-                    <span>Pairing code</span>
-                    <button type="button" onClick={() => copyPairingValue(activeDevice.pairing_code ?? "")}>
-                      {activeDevice.pairing_code}
-                      <Copy size={15} aria-hidden="true" />
+                    return (
+                      <button
+                        className="sceneButton"
+                        type="button"
+                        key={scene.id}
+                        onClick={() => applyScene(scene.id)}
+                        disabled={!visibleItems.length}
+                      >
+                        <span>
+                          <SceneIcon size={19} aria-hidden="true" />
+                        </span>
+                        <strong>{scene.label}</strong>
+                        <small>{scene.description}</small>
+                      </button>
+                    );
+                  })}
+                </section>
+
+                <section className="controlPanel" id="devices">
+                  <div className="panelHeader">
+                    <div>
+                      <p className="eyebrow muted">Relay channels</p>
+                      <h2>Appliance controls</h2>
+                    </div>
+                    <button className="iconButton" type="button" aria-label="Refresh dashboard" onClick={() => router.refresh()}>
+                      <RefreshCw size={18} aria-hidden="true" />
                     </button>
                   </div>
+
+                  <div className="roomTabs" aria-label="Filter appliances by room">
+                    {rooms.map((room) => (
+                      <button
+                        type="button"
+                        key={room}
+                        className={selectedRoom === room ? "active" : ""}
+                        onClick={() => setSelectedRoom(room)}
+                      >
+                        {room === "All" ? <Zap size={15} aria-hidden="true" /> : <Armchair size={15} aria-hidden="true" />}
+                        {room}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="applianceGrid">
+                    {visibleItems.length ? (
+                      visibleItems.map((appliance) => {
+                        const Icon = applianceIcon(appliance.kind);
+                        const isActive = Boolean(appliance.state?.power ?? appliance.state?.locked);
+                        const liveStatus = applianceStatus[appliance.id];
+
+                        return (
+                          <article className={`applianceCard ${isActive ? "on" : ""}`} key={appliance.id}>
+                            <div className="applianceTop">
+                              <span className="deviceIcon">
+                                <Icon size={21} aria-hidden="true" />
+                              </span>
+                              <button
+                                className={`powerButton ${isActive ? "on" : ""}`}
+                                type="button"
+                                aria-label={`${isActive ? "Disable" : "Enable"} ${appliance.name}`}
+                                onClick={() => sendCommand(appliance)}
+                              >
+                                <Power size={18} aria-hidden="true" />
+                              </button>
+                            </div>
+                            <div>
+                              <h3>{appliance.name}</h3>
+                              <p>
+                                {appliance.room}
+                                {typeof appliance.state?.level === "number" ? ` - ${appliance.state.level}%` : ""}
+                              </p>
+                            </div>
+                            <div className="cardFooter">
+                              <span>{isActive ? "Active" : "Standby"}</span>
+                              <small className={liveStatus ? "liveStatus" : ""}>
+                                {liveStatus ? commandLabel(liveStatus) : appliance.is_online ? "online" : "offline"}
+                              </small>
+                            </div>
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="applianceEmptyState">
+                        <Plug size={24} aria-hidden="true" />
+                        <strong>No relay channels yet</strong>
+                        <span>The ESP32 device exists, but no relay channels are configured.</span>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+
+          <aside className="dashboardRail">
+            <section className="devicePanel" id="pairing">
+              <div className="panelHeader">
+                <div>
+                  <p className="eyebrow muted">ESP32 pairing</p>
+                  <h2>{activeDevice?.name ?? "Add first ESP32"}</h2>
+                </div>
+                <span className="statusDot" aria-label={activeDevice?.status ?? "offline"} />
+              </div>
+
+              <div className="deviceSwitchRail" aria-label="Select ESP32 device">
+                {deviceList.length ? (
+                  deviceList.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={activeDevice?.id === item.id ? "active" : ""}
+                      onClick={() => {
+                        setSelectedDeviceId(item.id);
+                        setSelectedRoom("All");
+                      }}
+                    >
+                      <Router size={16} aria-hidden="true" />
+                      <span>{item.name}</span>
+                      <small>{item.status}</small>
+                    </button>
+                  ))
                 ) : (
-                  <div className="successBox">
-                    <CheckCircle2 size={18} aria-hidden="true" />
-                    <span>Provisioned</span>
+                  <div className="inlineEmptyState">
+                    <Router size={17} aria-hidden="true" />
+                    <span>No ESP32 devices yet</span>
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="noticeBar">
-                <AlertTriangle size={18} aria-hidden="true" />
-                <span>Create a device to see pairing details.</span>
               </div>
-            )}
 
-            {!activeDevice ? (
-              <div className="pairingBox">
-                <button type="button" className="button darkButton" onClick={handleCreateDevice} disabled={isCreating}>
-                  {isCreating ? "Creating..." : "Create device"}
-                </button>
-                {createError ? <small className="formNotice">{createError}</small> : null}
-              </div>
-            ) : null}
+              {activeDevice ? (
+                <>
+                  <div className="pairingBox">
+                    <span>Device ID</span>
+                    <button type="button" onClick={() => copyPairingValue(activeDevice.public_device_id)}>
+                      {activeDevice.public_device_id}
+                      <Copy size={15} aria-hidden="true" />
+                    </button>
+                    {copiedValue === activeDevice.public_device_id ? <small>Copied</small> : null}
+                  </div>
 
-            <div className="commandList" id="security">
+                  {activeDevice.pairing_code ? (
+                    <div className="pairingBox highlighted">
+                      <span>One-time pairing code</span>
+                      <button type="button" onClick={() => copyPairingValue(activeDevice.pairing_code ?? "")}>
+                        {activeDevice.pairing_code}
+                        <Copy size={15} aria-hidden="true" />
+                      </button>
+                      {copiedValue === activeDevice.pairing_code ? <small>Copied</small> : null}
+                    </div>
+                  ) : (
+                    <div className="successBox">
+                      <CheckCircle2 size={18} aria-hidden="true" />
+                      <span>Provisioned</span>
+                    </div>
+                  )}
+
+                  <div className="deviceMetaGrid">
+                    <div>
+                      <span>Status</span>
+                      <strong>{activeDevice.status}</strong>
+                    </div>
+                    <div>
+                      <span>Firmware</span>
+                      <strong>{activeDevice.firmware_version ?? "pending"}</strong>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="pairingBox">
+                  <span>Device setup</span>
+                  <strong>No ESP32 added yet</strong>
+                </div>
+              )}
+
+              {activeDevice ? addDeviceForm : null}
+            </section>
+
+            <section className="commandList" id="security">
               <h3>Recent commands</h3>
-              {recentCommands.length ? (
-                recentCommands.map((command) => (
+              {visibleCommands.length ? (
+                visibleCommands.map((command) => (
                   <div className="commandItem" key={command.id}>
                     <span>
                       {commandStatus[command.id] === "pending" ? (
@@ -523,10 +840,29 @@ export function DeviceConsole({
               ) : (
                 <p className="emptyState">No commands yet</p>
               )}
-            </div>
+            </section>
           </aside>
         </section>
       </section>
+
+      <nav className="mobileTabBar" aria-label="Mobile dashboard navigation">
+        <a href="#overview">
+          <Activity size={19} aria-hidden="true" />
+          Overview
+        </a>
+        <a href="#devices">
+          <Router size={19} aria-hidden="true" />
+          Devices
+        </a>
+        <a href="#pairing">
+          <Plus size={19} aria-hidden="true" />
+          Add
+        </a>
+        <a href="#security">
+          <Shield size={19} aria-hidden="true" />
+          Logs
+        </a>
+      </nav>
     </main>
   );
 }

@@ -22,6 +22,7 @@ export default async function DashboardPage() {
         userEmail="demo@homelynk.local"
         home={{ id: "demo-home", name: "Demo Residence" }}
         device={null}
+        devices={[]}
         appliances={[]}
         commands={[]}
         setupError="Supabase environment variables are not configured."
@@ -49,32 +50,34 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle<HomeRecord>();
 
-  const { data: device } = home
+  const { data: devices } = home
     ? await supabase
         .from("devices")
         .select("id,home_id,public_device_id,name,status,last_seen_at,pairing_code,firmware_version")
         .eq("home_id", home.id)
         .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle<DeviceRecord>()
-    : { data: null };
+        .returns<DeviceRecord[]>()
+    : { data: [] };
 
-  const { data: appliances } = device
+  const deviceList = devices ?? [];
+  const deviceIds = deviceList.map((item) => item.id);
+
+  const { data: appliances } = deviceIds.length
     ? await supabase
         .from("appliances")
         .select("id,device_id,name,room,kind,state,is_online,sort_order")
-        .eq("device_id", device.id)
+        .in("device_id", deviceIds)
         .order("sort_order", { ascending: true })
         .returns<ApplianceRecord[]>()
     : { data: [] };
 
-  const { data: commands } = device
+  const { data: commands } = deviceIds.length
     ? await supabase
         .from("appliance_commands")
         .select("id,device_id,appliance_id,action,status,error_message,created_at,completed_at")
-        .eq("device_id", device.id)
+        .in("device_id", deviceIds)
         .order("created_at", { ascending: false })
-        .limit(8)
+        .limit(16)
         .returns<CommandRecord[]>()
     : { data: [] };
 
@@ -82,7 +85,8 @@ export default async function DashboardPage() {
     <DeviceConsole
       userEmail={user.email ?? "HomeLynk user"}
       home={home ?? { id: "pending", name: "HomeLynk Home" }}
-      device={device ?? null}
+      device={deviceList[0] ?? null}
+      devices={deviceList}
       appliances={appliances ?? []}
       commands={commands ?? []}
       setupError={setupError}

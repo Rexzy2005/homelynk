@@ -2,6 +2,23 @@
 
 The dashboard and ESP32 connect to the realtime server over WebSocket.
 
+## Provisioning model
+
+New accounts start with a profile and home only. The dashboard should show an empty device list until the user or installer adds an ESP32.
+
+Adding an ESP32 creates a pending device record and four default relay-channel placeholders:
+
+```txt
+User -> Home -> ESP32 Device -> Relay Channel Appliances
+```
+
+The dashboard shows:
+
+- `publicDeviceId`: stable public device identifier to compile/provision into the ESP32.
+- `pairingCode`: one-time setup code used only to claim the device.
+
+The ESP32 exchanges `publicDeviceId + pairingCode` once for a long-lived `deviceSecret`. Store the `deviceSecret` in ESP32 non-volatile storage and do not expose it in the dashboard.
+
 ## User socket
 
 ```txt
@@ -40,7 +57,7 @@ Create a command:
 
 ## ESP32 provisioning
 
-The ESP32 claims its identity once using the device ID and pairing code shown in the dashboard.
+The ESP32 claims its identity once using the device ID and pairing code shown in the dashboard after the installer clicks Add ESP32.
 
 ```http
 POST /api/devices/claim
