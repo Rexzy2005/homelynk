@@ -132,6 +132,28 @@ function formatTime(value: string | null) {
   }).format(new Date(value));
 }
 
+function formatRelativeTime(value: string | null): string {
+  if (!value) return "Never";
+
+  const now = new Date();
+  const past = new Date(value);
+  const diffMs = now.getTime() - past.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
 export function DeviceConsole({
   userEmail,
   home,
@@ -568,7 +590,7 @@ export function DeviceConsole({
             </div>
             <div>
               <span>Last ping</span>
-              <strong suppressHydrationWarning>{formatTime(activeDevice?.last_seen_at ?? null)}</strong>
+              <strong suppressHydrationWarning>{formatRelativeTime(activeDevice?.last_seen_at ?? null)}</strong>
             </div>
           </div>
         </section>

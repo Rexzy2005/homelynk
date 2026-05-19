@@ -274,6 +274,7 @@ create policy "homes_select_own"
 on public.homes for select
 to authenticated
 using (owner_id = auth.uid());
+using (owner_id = auth.uid());
 
 drop policy if exists "devices_select_own" on public.devices;
 create policy "devices_select_own"

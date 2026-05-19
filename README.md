@@ -4,6 +4,12 @@ HomeLynk is a full-stack home automation web app for ESP32-controlled appliances
 
 New users start with a profile and home only. The device list stays empty until an ESP32 is added from the dashboard, then the installer uses the generated device ID and pairing code during firmware provisioning.
 
+## Recent Improvements
+
+- **Security**: Fixed Row Level Security policy for homes table to properly restrict data access
+- **User Experience**: Enhanced timestamp formatting to show relative times (e.g., "2m ago", "3h ago") instead of absolute timestamps
+- **Visual Design**: Added subtle gradient overlays to dashboard hero section for improved visual appeal
+
 ## Apps
 
 - `apps/web`: Next.js PWA, marketing page, Supabase auth flow, dashboard, device claim API.
