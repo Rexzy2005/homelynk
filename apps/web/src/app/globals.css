@@ -1,16 +1,18 @@
 :root {
-  --paper: #f7f4ec;
-  --paper-strong: #fffdf7;
+  --paper: #f4f7f6;
+  --paper-strong: #ffffff;
+  --surface-soft: #edf4f1;
   --ink: #17211f;
-  --muted: #66726e;
-  --line: rgba(23, 33, 31, 0.13);
+  --muted: #64716d;
+  --line: rgba(23, 33, 31, 0.11);
   --teal: #0f766e;
   --teal-dark: #0b4e49;
   --mint: #dff5ea;
   --amber: #d9902f;
   --blue: #2f6fba;
   --red: #b94a48;
-  --shadow: 0 22px 70px rgba(23, 33, 31, 0.14);
+  --shadow: 0 22px 70px rgba(23, 33, 31, 0.12);
+  --soft-shadow: 0 14px 36px rgba(23, 33, 31, 0.08);
   --radius: 8px;
 }
 
@@ -33,7 +35,9 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--ink);
-  background: var(--paper);
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.05), transparent 340px),
+    var(--paper);
   font-family: var(--font-geist-sans, Arial), Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -58,16 +62,26 @@ a {
 }
 
 .hero {
-  min-height: 86svh;
+  min-height: 84svh;
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 22px clamp(18px, 4vw, 56px) 68px;
+  padding: 20px clamp(18px, 4vw, 56px) 56px;
   color: #fffdf7;
   background:
-    linear-gradient(90deg, rgba(11, 23, 21, 0.82), rgba(11, 23, 21, 0.42) 54%, rgba(11, 23, 21, 0.12)),
+    linear-gradient(90deg, rgba(9, 20, 18, 0.88), rgba(9, 20, 18, 0.55) 56%, rgba(9, 20, 18, 0.18)),
     url("https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=2200&q=82")
       center / cover;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(9, 20, 18, 0.18), transparent 24%, rgba(9, 20, 18, 0.42)),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.2), transparent 42%);
+  pointer-events: none;
 }
 
 .nav,
@@ -99,7 +113,9 @@ a {
   justify-content: space-between;
   gap: 24px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  width: min(1240px, 100%);
+  margin: 0 auto;
 }
 
 .brand {
@@ -109,30 +125,50 @@ a {
 }
 
 .brandMark {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: var(--radius);
   color: #fffdf7;
-  background: var(--teal);
+  background:
+    linear-gradient(135deg, #14b8a6, var(--teal));
   box-shadow: 0 12px 28px rgba(15, 118, 110, 0.25);
 }
 
 .navLinks {
   display: flex;
   align-items: center;
-  gap: clamp(12px, 3vw, 30px);
-  color: rgba(255, 253, 247, 0.86);
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(255, 253, 247, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 253, 247, 0.84);
+  background: rgba(255, 253, 247, 0.08);
+  backdrop-filter: blur(12px);
   font-size: 0.94rem;
 }
 
+.navLinks a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.navLinks a:hover {
+  color: #fffdf7;
+  background: rgba(255, 253, 247, 0.12);
+}
+
 .heroContent {
-  width: min(760px, 100%);
+  width: min(820px, 100%);
   margin-top: auto;
-  padding-top: 110px;
+  padding-top: 96px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .eyebrow {
@@ -157,17 +193,53 @@ a {
 }
 
 .hero h1 {
-  max-width: 760px;
-  font-size: clamp(4.5rem, 16vw, 12rem);
-  line-height: 0.84;
+  max-width: 800px;
+  font-size: clamp(4.4rem, 15vw, 11rem);
+  line-height: 0.86;
 }
 
 .heroCopy {
   max-width: 640px;
-  margin: 28px 0 0;
-  color: rgba(255, 253, 247, 0.86);
+  margin: 24px 0 0;
+  color: rgba(255, 253, 247, 0.88);
   font-size: clamp(1.05rem, 2vw, 1.28rem);
   line-height: 1.65;
+}
+
+.heroSignalRail {
+  width: min(690px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 30px;
+  border: 1px solid rgba(255, 253, 247, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 253, 247, 0.18);
+  box-shadow: 0 18px 42px rgba(9, 20, 18, 0.24);
+}
+
+.heroSignalRail div {
+  padding: 15px;
+  background: rgba(13, 34, 31, 0.62);
+  backdrop-filter: blur(14px);
+}
+
+.heroSignalRail span,
+.heroSignalRail strong {
+  display: block;
+}
+
+.heroSignalRail span {
+  color: rgba(255, 253, 247, 0.64);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.heroSignalRail strong {
+  margin-top: 5px;
+  color: #fffdf7;
+  font-size: 0.92rem;
 }
 
 .heroActions {
@@ -220,7 +292,7 @@ a {
 }
 
 .statusBand {
-  width: min(1160px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
   min-height: 106px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -230,13 +302,13 @@ a {
   z-index: 2;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 18px;
   background: var(--line);
   box-shadow: var(--shadow);
 }
 
 .statusBand div {
-  padding: 22px;
+  padding: 24px;
   background: var(--paper-strong);
 }
 
@@ -257,9 +329,66 @@ a {
 }
 
 .section {
-  width: min(1160px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 86px 0;
+}
+
+.productBrief {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(460px, 1fr);
+  gap: clamp(24px, 5vw, 58px);
+  align-items: start;
+  padding-bottom: 28px;
+}
+
+.productBrief h2 {
+  max-width: 620px;
+  margin: 0;
+  font-size: clamp(2.1rem, 5vw, 4.6rem);
+  line-height: 0.98;
+}
+
+.briefGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.briefGrid article {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--soft-shadow);
+}
+
+.briefGrid span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--mint);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.briefGrid strong {
+  display: block;
+  margin-top: auto;
+  font-size: 1.15rem;
+}
+
+.briefGrid p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .sectionHeader {
@@ -309,6 +438,12 @@ a {
   padding: 26px;
 }
 
+.flowItem.elevated,
+.featureItem {
+  border-radius: 18px;
+  box-shadow: var(--soft-shadow);
+}
+
 .flowItem svg,
 .featureItem svg {
   color: var(--teal);
@@ -348,7 +483,7 @@ a {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 18px;
-  padding: 22px;
+  padding: 24px;
 }
 
 .featureItem h3 {
@@ -363,9 +498,12 @@ a {
   align-items: center;
   margin-bottom: 64px;
   padding: 36px;
-  border-radius: var(--radius);
+  border-radius: 22px;
   color: #fffdf7;
-  background: #192522;
+  background:
+    linear-gradient(135deg, rgba(23, 33, 31, 0.96), rgba(15, 118, 110, 0.78)),
+    #192522;
+  box-shadow: 0 26px 70px rgba(23, 33, 31, 0.18);
 }
 
 .steps {
@@ -389,18 +527,21 @@ a {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: clamp(16px, 3vw, 34px);
   background:
-    linear-gradient(135deg, rgba(247, 244, 236, 0.96), rgba(226, 240, 237, 0.9)),
+    linear-gradient(135deg, rgba(244, 247, 246, 0.96), rgba(223, 245, 234, 0.84)),
     url("https://images.unsplash.com/photo-1560440021-33f9b867899d?auto=format&fit=crop&w=1800&q=80")
       center / cover;
 }
 
 .authShell {
-  width: min(980px, 100%);
+  width: min(1050px, 100%);
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(360px, 1fr);
   gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(23, 33, 31, 0.1);
+  border-radius: 24px;
   box-shadow: var(--shadow);
 }
 
@@ -409,11 +550,11 @@ a {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 28px;
+  padding: clamp(24px, 4vw, 38px);
   color: #fffdf7;
   border-color: transparent;
   background:
-    linear-gradient(180deg, rgba(13, 34, 31, 0.88), rgba(13, 34, 31, 0.52)),
+    linear-gradient(180deg, rgba(13, 34, 31, 0.9), rgba(13, 34, 31, 0.58)),
     url("https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=1200&q=80")
       center / cover;
 }
@@ -430,12 +571,51 @@ a {
   line-height: 1.7;
 }
 
+.authBenefitGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.authBenefitGrid div {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 253, 247, 0.16);
+  border-radius: 14px;
+  color: rgba(255, 253, 247, 0.86);
+  background: rgba(255, 253, 247, 0.1);
+  backdrop-filter: blur(12px);
+  font-weight: 800;
+}
+
+.authBenefitGrid svg {
+  color: #9ae7c6;
+  flex: 0 0 auto;
+}
+
 .authForm {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 18px;
+  gap: 16px;
   padding: clamp(22px, 5vw, 48px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 248, 0.98)),
+    #ffffff;
+}
+
+.authFormHeader {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.authFormHeader h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.55rem);
+  line-height: 1;
 }
 
 .segmented {
@@ -486,6 +666,11 @@ a {
   background: #fff;
 }
 
+.field .passwordField {
+  grid-template-columns: auto 1fr auto;
+  padding-right: 8px;
+}
+
 .field svg {
   color: var(--teal);
 }
@@ -496,6 +681,22 @@ a {
   outline: 0;
   color: var(--ink);
   background: transparent;
+}
+
+.passwordToggle {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: transparent;
+}
+
+.passwordToggle:hover {
+  color: var(--ink);
+  background: var(--surface-soft);
 }
 
 .formNotice {
@@ -599,7 +800,7 @@ a {
 .pwaInstallPrompt {
   position: fixed;
   right: 18px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  top: calc(84px + env(safe-area-inset-top));
   z-index: 70;
   width: min(390px, calc(100vw - 32px));
   pointer-events: none;
@@ -618,6 +819,7 @@ a {
   box-shadow: 0 20px 54px rgba(23, 33, 31, 0.18);
   backdrop-filter: blur(16px);
   pointer-events: auto;
+  animation: prompt-drop-in 180ms ease-out both;
 }
 
 .pwaInstallIcon {
@@ -661,7 +863,7 @@ a {
 .dashboard {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(238, 243, 241, 0) 260px),
+    linear-gradient(180deg, rgba(15, 118, 110, 0.09), rgba(47, 111, 186, 0.04) 360px, rgba(238, 243, 241, 0) 520px),
     #eef3f1;
 }
 
@@ -679,8 +881,8 @@ a {
   top: 0;
   z-index: 30;
   padding: 14px clamp(16px, 3vw, 40px);
-  border-bottom: 1px solid rgba(23, 33, 31, 0.1);
-  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(23, 33, 31, 0.08);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
 }
 
@@ -764,23 +966,23 @@ a {
 }
 
 .dashboardMain {
-  width: min(1380px, calc(100% - 32px));
+  width: min(1400px, calc(100% - 32px));
   margin: 0 auto;
   padding: clamp(22px, 3vw, 42px) 0 42px;
 }
 
 .dashboardHero {
-  min-height: 220px;
+  min-height: 240px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 430px);
   gap: 24px;
   align-items: end;
   padding: clamp(26px, 4vw, 42px);
   border: 1px solid rgba(23, 33, 31, 0.1);
-  border-radius: 18px;
+  border-radius: 24px;
   color: #fffdf7;
   background:
-    linear-gradient(135deg, rgba(23, 33, 31, 0.94), rgba(15, 118, 110, 0.82)),
+    linear-gradient(135deg, rgba(23, 33, 31, 0.96), rgba(15, 118, 110, 0.82) 62%, rgba(47, 111, 186, 0.56)),
     #17211f;
   box-shadow: 0 24px 60px rgba(23, 33, 31, 0.16);
   position: relative;
@@ -788,7 +990,7 @@ a {
 }
 
 .dashboardHero::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -808,13 +1010,40 @@ a {
   color: rgba(255, 253, 247, 0.76);
 }
 
+.dashboardHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboardHeroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 22px;
+}
+
+.dashboardHeroChips span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 253, 247, 0.16);
+  border-radius: 999px;
+  color: rgba(255, 253, 247, 0.84);
+  background: rgba(255, 253, 247, 0.1);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .homeBridgePanel {
   display: grid;
   gap: 10px;
-  padding: 16px;
+  padding: 18px;
   border: 1px solid rgba(255, 253, 247, 0.18);
-  border-radius: 14px;
-  background: rgba(255, 253, 247, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 253, 247, 0.12);
+  backdrop-filter: blur(12px);
 }
 
 .homeBridgePanel div {
@@ -896,25 +1125,47 @@ a {
 .metricGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 14px;
   margin: 24px 0;
 }
 
 .metric {
-  min-height: 112px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  min-height: 126px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
   padding: 18px;
   border: 1px solid rgba(23, 33, 31, 0.08);
   background: #ffffff;
-  box-shadow: 0 10px 26px rgba(23, 33, 31, 0.06);
+  box-shadow: var(--soft-shadow);
+}
+
+.metricIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  border-radius: 12px;
+  color: var(--teal);
+  background: var(--surface-soft);
+}
+
+.metric span {
+  grid-column: 1;
+}
+
+.metric strong {
+  grid-column: 1;
+  align-self: end;
 }
 
 .dashboardWorkspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 390px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+  gap: 20px;
   align-items: start;
 }
 
@@ -925,7 +1176,7 @@ a {
 .dashboardRail {
   min-width: 0;
   display: grid;
-  gap: 14px;
+  gap: 16px;
   position: sticky;
   top: 92px;
 }
@@ -937,9 +1188,9 @@ a {
   align-items: start;
   padding: clamp(24px, 4vw, 38px);
   border: 1px solid rgba(23, 33, 31, 0.1);
-  border-radius: 18px;
+  border-radius: 22px;
   background: #ffffff;
-  box-shadow: 0 14px 36px rgba(23, 33, 31, 0.08);
+  box-shadow: var(--soft-shadow);
 }
 
 .emptyDeviceCopy {
@@ -1013,17 +1264,22 @@ a {
 }
 
 .sceneButton {
-  min-width: 210px;
+  min-width: 216px;
   flex: 1 0 0;
   gap: 12px;
   align-items: flex-start;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 16px;
   color: var(--ink);
   background: #ffffff;
   box-shadow: 0 10px 26px rgba(23, 33, 31, 0.05);
   text-align: left;
+}
+
+.sceneButton:hover {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #f7fbfa;
 }
 
 .sceneButton:disabled,
@@ -1065,11 +1321,11 @@ a {
 
 .controlPanel,
 .devicePanel {
-  padding: 22px;
+  padding: clamp(18px, 2.2vw, 24px);
   border: 1px solid rgba(23, 33, 31, 0.08);
-  border-radius: 18px;
+  border-radius: 22px;
   background: #ffffff;
-  box-shadow: 0 14px 36px rgba(23, 33, 31, 0.08);
+  box-shadow: var(--soft-shadow);
 }
 
 .panelHeader {
@@ -1081,6 +1337,14 @@ a {
 .panelHeader h2 {
   margin-top: 0;
   font-size: 1.45rem;
+}
+
+.panelMeta {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 750;
 }
 
 .deviceSwitchRail {
@@ -1106,10 +1370,19 @@ a {
   flex: 0 0 auto;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 14px;
   color: var(--ink);
   background: #f6faf8;
   text-align: left;
+  transition:
+    border 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.deviceSwitchRail button:hover {
+  border-color: rgba(15, 118, 110, 0.28);
+  transform: translateY(-1px);
 }
 
 .deviceSwitchRail button svg {
@@ -1168,6 +1441,11 @@ a {
   font-weight: 800;
 }
 
+.roomTabs button:hover {
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+
 .roomTabs button.active {
   color: #fffdf7;
   border-color: var(--teal);
@@ -1184,22 +1462,26 @@ a {
   border-radius: var(--radius);
   color: var(--ink);
   background: #fff;
+  transition:
+    transform 160ms ease,
+    border 160ms ease,
+    background 160ms ease;
 }
 
 .applianceGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .applianceCard {
-  min-height: 164px;
+  min-height: 172px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 18px;
   background: #ffffff;
   overflow: hidden;
   transition:
@@ -1209,10 +1491,16 @@ a {
     box-shadow 160ms ease;
 }
 .applianceCard:hover {
-  border-color: rgba(23, 33, 31, 0.2);
-  background: #fafaf9;
-  box-shadow: 0 4px 12px rgba(23, 33, 31, 0.08);
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #fbfdfc;
+  box-shadow: 0 16px 34px rgba(23, 33, 31, 0.1);
   transform: translateY(-2px);
+}
+
+.applianceCard.offline {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 248, 0.88)),
+    #ffffff;
 }
 
 .applianceEmptyState {
@@ -1251,11 +1539,11 @@ a {
 }
 
 .deviceIcon {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius);
+  border-radius: 14px;
   color: var(--teal);
   background: #edf5f2;
 }
@@ -1264,6 +1552,7 @@ a {
   color: #fffdf7;
   border-color: var(--teal);
   background: var(--teal);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.24);
 }
 
 .applianceCard h3 {
@@ -1292,16 +1581,26 @@ a {
   width: 12px;
   height: 12px;
   border-radius: 999px;
+  background: var(--muted);
+  box-shadow: 0 0 0 6px rgba(100, 113, 109, 0.12);
+}
+
+.statusDot.online {
   background: var(--teal);
   box-shadow: 0 0 0 6px rgba(15, 118, 110, 0.12);
+}
+
+.statusDot.provisioned {
+  background: var(--amber);
+  box-shadow: 0 0 0 6px rgba(217, 144, 47, 0.14);
 }
 
 .pairingBox {
   display: grid;
   gap: 8px;
-  padding: 14px;
+  padding: 15px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: #f6faf8;
 }
 
@@ -1341,7 +1640,7 @@ a {
   gap: 10px;
   padding: 14px;
   color: var(--teal-dark);
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--mint);
   font-weight: 800;
 }
@@ -1352,7 +1651,7 @@ a {
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: #f6faf8;
 }
 
@@ -1382,9 +1681,33 @@ a {
 .commandList {
   padding: 20px;
   border: 1px solid rgba(23, 33, 31, 0.08);
-  border-radius: 18px;
+  border-radius: 22px;
   background: #ffffff;
-  box-shadow: 0 14px 36px rgba(23, 33, 31, 0.08);
+  box-shadow: var(--soft-shadow);
+}
+
+.commandListHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.commandListHeader h3 {
+  margin: 0;
+}
+
+.commandListHeader > span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--mint);
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .deviceMetaGrid {
@@ -1397,7 +1720,7 @@ a {
 .deviceMetaGrid div {
   padding: 13px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 14px;
   background: #f6faf8;
 }
 
@@ -1506,6 +1829,17 @@ a {
   }
 }
 
+@keyframes prompt-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 200ms ease;
 }
@@ -1519,10 +1853,15 @@ a {
   .flowGrid,
   .splitSection,
   .setupSection,
+  .productBrief,
   .authShell,
   .dashboardHero,
   .dashboardWorkspace,
   .emptyDevicePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .briefGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1553,18 +1892,35 @@ a {
 
 @media (max-width: 680px) {
   .hero {
-    min-height: 82svh;
+    min-height: auto;
     padding-bottom: 46px;
   }
 
   .nav {
     align-items: flex-start;
+    gap: 14px;
   }
 
   .navLinks {
-    gap: 12px;
+    gap: 2px;
     flex-wrap: wrap;
     justify-content: flex-end;
+    padding: 4px;
+    background: rgba(13, 34, 31, 0.52);
+  }
+
+  .navLinks a {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+
+  .heroContent {
+    padding-top: 92px;
+  }
+
+  .heroSignalRail {
+    grid-template-columns: 1fr;
   }
 
   .statusBand {
@@ -1577,6 +1933,10 @@ a {
 
   .section {
     padding: 58px 0;
+  }
+
+  .productBrief {
+    padding-bottom: 0;
   }
 
   .setupSection {
@@ -1592,6 +1952,14 @@ a {
   .authForm,
   .authVisual {
     border-radius: 0;
+  }
+
+  .authForm {
+    padding: 24px 18px;
+  }
+
+  .authBenefitGrid {
+    grid-template-columns: 1fr;
   }
 
   .applianceGrid {
@@ -1660,6 +2028,11 @@ a {
   .metric {
     min-height: 88px;
     padding: 14px;
+  }
+
+  .metricIcon {
+    width: 34px;
+    height: 34px;
   }
 
   .metric strong {
@@ -1759,7 +2132,7 @@ a {
   .pwaInstallPrompt {
     left: 10px;
     right: 10px;
-    bottom: calc(86px + env(safe-area-inset-bottom));
+    top: calc(74px + env(safe-area-inset-top));
     width: auto;
   }
 

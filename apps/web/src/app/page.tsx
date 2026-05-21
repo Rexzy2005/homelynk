@@ -38,6 +38,12 @@ const steps = [
   "Control rooms, appliances, schedules, and scenes",
 ];
 
+const signals = [
+  { label: "Cloud bridge", value: "WebSocket live" },
+  { label: "Provisioning", value: "One-time pairing" },
+  { label: "Control model", value: "Ack + telemetry" },
+];
+
 export default function Home() {
   return (
     <main className="site">
@@ -66,6 +72,14 @@ export default function Home() {
             A secure web and PWA control layer for appliances, room scenes, and
             live device feedback across connected homes.
           </p>
+          <div className="heroSignalRail" aria-label="HomeLynk product signals">
+            {signals.map((signal) => (
+              <div key={signal.label}>
+                <span>{signal.label}</span>
+                <strong>{signal.value}</strong>
+              </div>
+            ))}
+          </div>
           <div className="heroActions">
             <Link className="button primaryButton" href="/auth">
               Start control hub
@@ -93,6 +107,33 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section productBrief" aria-label="Control workflow overview">
+        <div>
+          <p className="eyebrow muted">
+            <Activity size={16} aria-hidden="true" />
+            How it behaves
+          </p>
+          <h2>Designed for homes where feedback matters as much as control.</h2>
+        </div>
+        <div className="briefGrid">
+          <article>
+            <span>01</span>
+            <strong>Tap</strong>
+            <p>The dashboard updates immediately and records the desired relay state.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Deliver</strong>
+            <p>The realtime server validates ownership before forwarding the command.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Confirm</strong>
+            <p>The ESP32 acknowledges execution and sends telemetry back to the UI.</p>
+          </article>
+        </div>
+      </section>
+
       <section className="section" id="system">
         <div className="sectionHeader">
           <p className="eyebrow muted">
@@ -108,17 +149,17 @@ export default function Home() {
         </div>
 
         <div className="flowGrid">
-          <article className="flowItem">
+          <article className="flowItem elevated">
             <Zap size={22} aria-hidden="true" />
             <h3>User command</h3>
             <p>Dashboard applies an optimistic state and emits a signed command.</p>
           </article>
-          <article className="flowItem">
+          <article className="flowItem elevated">
             <RadioTower size={22} aria-hidden="true" />
             <h3>Realtime router</h3>
             <p>WebSocket service validates ownership and forwards to the ESP32.</p>
           </article>
-          <article className="flowItem">
+          <article className="flowItem elevated">
             <Activity size={22} aria-hidden="true" />
             <h3>Device response</h3>
             <p>ESP32 acknowledges, reports telemetry, and the UI reconciles state.</p>

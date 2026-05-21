@@ -20,6 +20,7 @@ import {
   Plug,
   Plus,
   Power,
+  RadioTower,
   RefreshCw,
   Router,
   Shield,
@@ -570,6 +571,20 @@ export function DeviceConsole({
             <p className="dashboardSubtitle">
               Control relay-connected home appliances from anywhere through a secure ESP32 cloud bridge.
             </p>
+            <div className="dashboardHeroChips" aria-label="Dashboard capabilities">
+              <span>
+                <ShieldCheck size={15} aria-hidden="true" />
+                Account scoped
+              </span>
+              <span>
+                <RadioTower size={15} aria-hidden="true" />
+                Live WebSocket
+              </span>
+              <span>
+                <CheckCircle2 size={15} aria-hidden="true" />
+                Ack tracked
+              </span>
+            </div>
           </div>
           <div className="homeBridgePanel">
             <div>
@@ -596,20 +611,30 @@ export function DeviceConsole({
 
         <section className="metricGrid" aria-label="Home status">
           <article className="metric">
+            <div className="metricIcon">
+              <Router size={18} aria-hidden="true" />
+            </div>
             <span>Relay channels</span>
-            <strong>
-              {items.length}
-            </strong>
+            <strong>{items.length}</strong>
           </article>
           <article className="metric">
+            <div className="metricIcon">
+              <Wifi size={18} aria-hidden="true" />
+            </div>
             <span>Online channels</span>
             <strong>{onlineCount}</strong>
           </article>
           <article className="metric">
+            <div className="metricIcon">
+              <Power size={18} aria-hidden="true" />
+            </div>
             <span>Active relays</span>
             <strong>{poweredCount}</strong>
           </article>
           <article className="metric">
+            <div className="metricIcon">
+              <Shield size={18} aria-hidden="true" />
+            </div>
             <span>Locks secured</span>
             <strong>{securedCount}</strong>
           </article>
@@ -679,6 +704,7 @@ export function DeviceConsole({
                     <div>
                       <p className="eyebrow muted">Relay channels</p>
                       <h2>Appliance controls</h2>
+                      <span className="panelMeta">{visibleItems.length} shown from {items.length} configured channels</span>
                     </div>
                     <button className="iconButton" type="button" aria-label="Refresh dashboard" onClick={() => router.refresh()}>
                       <RefreshCw size={18} aria-hidden="true" />
@@ -707,7 +733,7 @@ export function DeviceConsole({
                         const liveStatus = applianceStatus[appliance.id];
 
                         return (
-                          <article className={`applianceCard ${isActive ? "on" : ""}`} key={appliance.id}>
+                          <article className={`applianceCard ${isActive ? "on" : ""} ${appliance.is_online ? "" : "offline"}`} key={appliance.id}>
                             <div className="applianceTop">
                               <span className="deviceIcon">
                                 <Icon size={21} aria-hidden="true" />
@@ -757,7 +783,10 @@ export function DeviceConsole({
                   <p className="eyebrow muted">ESP32 pairing</p>
                   <h2>{activeDevice?.name ?? "Add first ESP32"}</h2>
                 </div>
-                <span className="statusDot" aria-label={activeDevice?.status ?? "offline"} />
+                <span
+                  className={`statusDot ${activeDevice?.status === "online" ? "online" : activeDevice?.status === "provisioned" ? "provisioned" : ""}`}
+                  aria-label={activeDevice?.status ?? "offline"}
+                />
               </div>
 
               <div className="deviceSwitchRail" aria-label="Select ESP32 device">
@@ -842,7 +871,13 @@ export function DeviceConsole({
             </div>
 
             <section className="commandList" id="security">
-              <h3>Recent commands</h3>
+              <div className="commandListHeader">
+                <div>
+                  <p className="eyebrow muted">Activity</p>
+                  <h3>Recent commands</h3>
+                </div>
+                <span>{visibleCommands.length}/8</span>
+              </div>
               {visibleCommands.length ? (
                 visibleCommands.map((command) => (
                   <div className="commandItem" key={command.id}>

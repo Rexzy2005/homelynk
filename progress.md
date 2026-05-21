@@ -21,9 +21,10 @@
 - Supabase bootstrap corrected: new signups now create only profile/home. No default ESP32 or appliances are created until Add ESP32 is used.
 - Dashboard preview corrected: empty device lists stay empty instead of showing fake demo hardware.
 - Dashboard redesigned as a more user-centered product console: sticky top bar, operational hero, clear empty ESP32 onboarding, setup steps, focused control workspace, right-side pairing rail, and cleaner mobile collapse.
-- PWA install prompt and toast overlays converted from unused utility classes to app CSS, with mobile positioning above the dashboard bottom navigation.
+- PWA install prompt and toast overlays converted from unused utility classes to app CSS; the install prompt now appears from the top while toasts remain clear of the mobile bottom navigation.
 - Removed the duplicate static `manifest.webmanifest` that conflicted with the Next.js app manifest route.
 - Complete end-to-end Wokwi test guide added for a two-bulb ESP32 simulation, including claim flow, appliance ID lookup, sketch code, and troubleshooting.
+- Full UI upgrade pass completed across the landing page, authentication flow, and dashboard: stronger visual hierarchy, refined surfaces, improved auth details, richer dashboard metrics, clearer device state, and better responsive spacing.
 
 ## Verification
 
@@ -39,6 +40,7 @@
 - Latest dashboard redesign verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
 - Latest PWA prompt/Wokwi guide update verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
 - Live dev smoke check returned `200 OK` for `/` and `/manifest.webmanifest`, and `/dashboard` correctly redirects unauthenticated users to `/auth`.
+- Latest UI upgrade verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`. Live route checks returned `200 OK` for `/`, `/auth`, and `/manifest.webmanifest`; `/dashboard` redirects unauthenticated users to `/auth`.
 - The earlier page/icon naming collision, external Google font fetch issue, PWA manifest typing issue, and realtime build output issue have been fixed.
 
 ## Next Steps

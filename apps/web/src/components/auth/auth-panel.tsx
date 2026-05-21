@@ -3,7 +3,19 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, Home, Loader2, LockKeyhole, Mail, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Home,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  RadioTower,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/toast-provider";
 
@@ -12,6 +24,21 @@ type AuthMode = "sign-in" | "sign-up";
 type AuthPanelProps = {
   isConfigured: boolean;
 };
+
+const authBenefits = [
+  {
+    icon: ShieldCheck,
+    label: "Account-bound homes",
+  },
+  {
+    icon: RadioTower,
+    label: "Realtime device bridge",
+  },
+  {
+    icon: CheckCircle2,
+    label: "Traceable command status",
+  },
+];
 
 export function AuthPanel({ isConfigured }: AuthPanelProps) {
   const router = useRouter();
@@ -91,9 +118,26 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
             with live feedback and traceable command status.
           </p>
         </div>
+        <div className="authBenefitGrid" aria-label="Authentication benefits">
+          {authBenefits.map((benefit) => {
+            const Icon = benefit.icon;
+
+            return (
+              <div key={benefit.label}>
+                <Icon size={16} aria-hidden="true" />
+                <span>{benefit.label}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <form className="authForm" onSubmit={handleSubmit}>
+        <div className="authFormHeader">
+          <p className="eyebrow muted">Home access</p>
+          <h2>{mode === "sign-up" ? "Set up your control account" : "Sign in to your control hub"}</h2>
+        </div>
+
         <div className="segmented" aria-label="Authentication mode">
           <button
             type="button"
@@ -158,7 +202,7 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
 
         <label className="field">
           <span>Password</span>
-          <div className="relative">
+          <div className="passwordField">
             <LockKeyhole size={18} aria-hidden="true" />
             <input
               value={password}
@@ -168,11 +212,10 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
               autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
               minLength={8}
               required
-              className="pr-10"
             />
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+              className="passwordToggle"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
