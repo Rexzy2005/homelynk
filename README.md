@@ -16,6 +16,7 @@ New users start with a profile and home only. The device list stays empty until 
 - `apps/realtime`: Node WebSocket server for user and ESP32 connections.
 - `supabase/schema.sql`: Supabase Postgres schema, RLS policies, and bootstrap function.
 - `docs/realtime-protocol.md`: WebSocket and provisioning contract for firmware integration.
+- `docs/end-to-end-wokwi-test-guide.md`: Full two-bulb ESP32 simulator setup for testing claim, WebSocket commands, acknowledgements, and telemetry.
 
 ## Setup
 

@@ -21,6 +21,9 @@
 - Supabase bootstrap corrected: new signups now create only profile/home. No default ESP32 or appliances are created until Add ESP32 is used.
 - Dashboard preview corrected: empty device lists stay empty instead of showing fake demo hardware.
 - Dashboard redesigned as a more user-centered product console: sticky top bar, operational hero, clear empty ESP32 onboarding, setup steps, focused control workspace, right-side pairing rail, and cleaner mobile collapse.
+- PWA install prompt and toast overlays converted from unused utility classes to app CSS, with mobile positioning above the dashboard bottom navigation.
+- Removed the duplicate static `manifest.webmanifest` that conflicted with the Next.js app manifest route.
+- Complete end-to-end Wokwi test guide added for a two-bulb ESP32 simulation, including claim flow, appliance ID lookup, sketch code, and troubleshooting.
 
 ## Verification
 
@@ -34,11 +37,12 @@
 - Latest add-device/dashboard fix verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
 - Latest empty-device provisioning fix verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
 - Latest dashboard redesign verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
+- Latest PWA prompt/Wokwi guide update verified with `npm run lint:web`, `npx tsc --noEmit` in `apps/web`, `npm run build:web`, and `npm run build:realtime`.
+- Live dev smoke check returned `200 OK` for `/` and `/manifest.webmanifest`, and `/dashboard` correctly redirects unauthenticated users to `/auth`.
 - The earlier page/icon naming collision, external Google font fetch issue, PWA manifest typing issue, and realtime build output issue have been fixed.
 
 ## Next Steps
 
 - Connect the app to a real Supabase project and run `supabase/schema.sql`.
 - Run the latest `supabase/schema.sql` again if the Supabase project was already created before this update. The schema now drops/recreates `ensure_home_bootstrap()` and adds `create_home_device(device_name text)`.
-- Test full auth, multi-device creation, DB bootstrap, and ESP32 claim flow with Supabase credentials.
-- Start testing the ESP32 claim and WebSocket command loop with the hardware team once firmware is ready.
+- Follow `docs/end-to-end-wokwi-test-guide.md` to test the ESP32 claim and WebSocket command loop with the two-bulb Wokwi simulation.

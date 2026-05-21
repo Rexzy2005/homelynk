@@ -121,18 +121,6 @@ function commandLabel(status: string) {
   return status.replaceAll("_", " ");
 }
 
-function formatTime(value: string | null) {
-  if (!value) return "Never";
-  // Force stable SSR/client formatting by pinning locale and timezone.
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
-
 function formatRelativeTime(value: string | null): string {
   if (!value) return "Never";
 
@@ -165,6 +153,7 @@ export function DeviceConsole({
   setupError,
 }: DeviceConsoleProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const requestApplianceRef = useRef<Record<string, string>>({});
   const isPreview = Boolean(setupError);
@@ -356,8 +345,6 @@ export function DeviceConsole({
   }, [activeDevice, setupError]);
 
   async function signOut() {
-    const { addToast } = useToast();
-
     if (isPreview) {
       addToast("Signing out...", "info");
       router.replace("/auth");

@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { createContext, useCallback, useState, ReactNode } from 'react';
+import React, { createContext, ReactNode, useCallback, useMemo, useState } from "react";
 
-type ToastVariant = 'success' | 'error' | 'info' | 'warning';
+type ToastVariant = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: string;
@@ -26,19 +25,27 @@ const ToastContext = createContext<ToastContextType>({
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback((message: string, variant: ToastVariant = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, variant }]);
-    // Auto remove after 3 seconds
-    setTimeout(() => removeToast(id), 3000);
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+  const addToast = useCallback((message: string, variant: ToastVariant = "info") => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, message, variant }]);
+    window.setTimeout(() => removeToast(id), 3000);
+  }, [removeToast]);
+
+  const value = useMemo(
+    () => ({
+      toasts,
+      addToast,
+      removeToast,
+    }),
+    [addToast, removeToast, toasts],
+  );
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={value}>
       {children}
     </ToastContext.Provider>
   );
@@ -46,6 +53,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast() {
   const ctx = React.useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }
