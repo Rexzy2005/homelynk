@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "author": "HomeLynk Team",
+  "elements": [
+    {
+      "type": "wire",
+      "label": "",
+      "from": { "chip": "ESP32", "pin": "2" },
+      "to": { "chip": "LED1", "pin": "ANODE" }
+    },
+    {
+      "type": "resistor",
+      "label": "220Ω",
+      "from": { "chip": "LED1", "pin": "CATHODE" },
+      "to": { "chip": "ESP32", "pin": "GND.1" },
+      "rotate": 90
+    }
+  ],
+  "connections": []
+}

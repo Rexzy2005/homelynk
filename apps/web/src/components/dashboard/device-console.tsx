@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getRealtimeUrl } from "@/lib/config";
+import { useToast } from "@/app/toast-provider";
 
 type ApplianceState = {
   power?: boolean;
@@ -355,15 +356,23 @@ export function DeviceConsole({
   }, [activeDevice, setupError]);
 
   async function signOut() {
+    const { addToast } = useToast();
+
     if (isPreview) {
+      addToast("Signing out...", "info");
       router.replace("/auth");
       return;
     }
 
     const supabase = createClient();
-    await supabase.auth.signOut({ scope: "local" });
-    router.replace("/auth");
-    router.refresh();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+      addToast("Signed out successfully", "success");
+      router.replace("/auth");
+      router.refresh();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : "Failed to sign out", "error");
+    }
   }
 
   async function handleCreateDevice() {
@@ -560,10 +569,6 @@ export function DeviceConsole({
             {connection === "connected" ? <Wifi size={18} aria-hidden="true" /> : <WifiOff size={18} aria-hidden="true" />}
             {connection}
           </div>
-          <button className="iconTextButton" type="button" onClick={signOut}>
-            <LogOut size={18} aria-hidden="true" />
-            Sign out
-          </button>
         </div>
       </header>
 
@@ -840,6 +845,14 @@ export function DeviceConsole({
 
               {activeDevice ? addDeviceForm : null}
             </section>
+
+            {/* Logout button in sidebar */}
+            <div className="dashboardRailLogout">
+              <button className="iconTextButton" type="button" onClick={signOut}>
+                <LogOut size={18} aria-hidden="true" />
+                Sign out
+              </button>
+            </div>
 
             <section className="commandList" id="security">
               <h3>Recent commands</h3>

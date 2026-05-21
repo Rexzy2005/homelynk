@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { ToastProvider } from "@/app/toast-provider";
+import { ToastContainer } from "@/components/toast-container";
+import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +36,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        {children}
+        <ToastProvider>
+          {children}
+          <ToastContainer />
+          <PWAInstallPrompt />
+        </ToastProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

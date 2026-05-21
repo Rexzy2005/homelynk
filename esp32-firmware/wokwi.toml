@@ -1,0 +1,6 @@
+[wokwi]
+version = 1
+
+[firmware]
+filepath = "sketch.ino"
+board = "esp32dev"

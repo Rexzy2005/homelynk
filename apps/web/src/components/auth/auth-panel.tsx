@@ -3,8 +3,9 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Home, Loader2, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Home, Loader2, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/app/toast-provider";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -19,15 +20,15 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [homeName, setHomeName] = useState("My Home");
-  const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { addToast } = useToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("");
 
     if (!isConfigured) {
-      setNotice("Add the Supabase environment values before using auth.");
+      addToast("Add the Supabase environment values before using auth.", "error");
       return;
     }
 
@@ -48,12 +49,12 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
       });
 
       if (error) {
-        setNotice(error.message);
+        addToast(error.message, "error");
         setIsSubmitting(false);
         return;
       }
 
-      setNotice("Account created. Check your email if confirmation is enabled.");
+      addToast("Account created. Check your email if confirmation is enabled.", "success");
       setIsSubmitting(false);
       return;
     }
@@ -64,7 +65,7 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
     });
 
     if (error) {
-      setNotice(error.message);
+      addToast(error.message, "error");
       setIsSubmitting(false);
       return;
     }
@@ -157,17 +158,26 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
 
         <label className="field">
           <span>Password</span>
-          <div>
+          <div className="relative">
             <LockKeyhole size={18} aria-hidden="true" />
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Minimum 8 characters"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
               minLength={8}
               required
+              className="pr-10"
             />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+            </button>
           </div>
         </label>
 
