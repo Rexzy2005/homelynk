@@ -181,8 +181,6 @@ export function AuthPanel({ isConfigured }: AuthPanelProps) {
           </div>
         </label>
 
-        {notice ? <p className="formNotice">{notice}</p> : null}
-
         <button className="button darkButton fullWidth" type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}
           {mode === "sign-up" ? "Create account" : "Sign in"}
